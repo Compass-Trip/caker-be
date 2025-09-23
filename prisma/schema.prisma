@@ -6,10 +6,38 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  GENERAL
+  BUSINESS
+  ADMIN
+}
+
+model Users {
+  id String @id @default(uuid())
+  name String
+  user_type UserType
+  phonenumber String @unique
+
+  // 일반 유저
+  kakao_client_id String?
+  profile String?
+
+  // 판매자 유저
+  business_email String?
+  business_password String?
+  buisness_number String?
+
+  // 관리자 유저
+  admin_email String?
+  admin_password String?
+
+  created_at DateTime @default(now())
+  deleted_at DateTime? 
 }
