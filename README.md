@@ -26,7 +26,7 @@
 ## Project setup
 
 ```bash
-nvm use 20
+nvm use 22
 yarn install
 ```
 
