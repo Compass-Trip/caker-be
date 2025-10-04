@@ -11,6 +11,9 @@ import { LikesModule } from './likes/likes.module';
 import { CartsModule } from './carts/carts.module';
 import { OrdersModule } from './orders/orders.module';
 import { CustomServicesModule } from './custom-services/custom-services.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { APP_FILTER } from '@nestjs/core';
+import { HttpExceptionFilter } from './common/http-exception/http-exception.filter';
 
 @Module({
   imports: [
@@ -24,8 +27,8 @@ import { CustomServicesModule } from './custom-services/custom-services.module';
     CartsModule,
     OrdersModule,
     CustomServicesModule,
+    PrismaModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
