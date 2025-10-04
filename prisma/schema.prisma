@@ -127,7 +127,7 @@ model Products {
   price Int
   representative_image_url String
   discount_percent Int?
-  options Json // 상품옵션
+  
   description Json // 상품정보
   
   // 외래키
@@ -137,12 +137,12 @@ model Products {
   // Products:EventCategories=1:1
   event_category EventCategories @relation(fields: [event_category_id], references: [id])
   event_category_id Int @unique
-
   // Products:ProductsAndThemeNDesignCategories=1:N
   products_and_theme_n_design_categories ProductsAndThemeNDesignCategories[]
   likes Likes[] // Products:Likes=1:N
   order Orders? // Products:Orders=1:1
   custom_order_guides CustomOrderGuides[] // Products:CustomOrderGuides=1:N
+  options ProductOptions[] // Products:ProductOptions=1:N
   
   created_at DateTime @default(now())
   updated_at DateTime?
@@ -153,6 +153,7 @@ model Products {
 model EventCategories {
   id Int @id @default(autoincrement())
   name String @unique
+  icon_image_url String
 
   // 외래키
   product Products?
@@ -193,6 +194,44 @@ model ProductsAndThemeNDesignCategories {
   updated_at DateTime?
   deleted Boolean @default(false)
   @@map("products_and_theme_n_design_categories")
+}
+
+/* 상품옵션 (예: 케이크사이즈, 케이크맛, 필링, 아이스팩, 포장, 디자인초 등) */
+model ProductOptions {
+  id BigInt @id @default(autoincrement())
+  name String // 옵션명
+  display_order Int @default(0) // 정렬순서
+  is_required Boolean @default(true) // 필수옵션 여부
+
+  // 외래키
+  // ProductOptions:Products=N:1
+  product Products @relation(fields: [product_id], references: [id])
+  product_id BigInt
+  // ProductOptions:ProductOptionChoices=1:N
+  product_option_choices ProductOptionChoices[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("product_options")
+}
+
+/* 상품옵션 하위 선택형 옵션 & 추가가격 */
+model ProductOptionChoices {
+  id BigInt @id @default(autoincrement())
+  name String // 하위옵션명
+  display_order Int @default(0) // 정렬순서
+  additional_price Int @default(0) // 추가가격
+
+  // 외래키
+  // ProductOptionChoices:ProductOptions=N:1
+  product_option ProductOptions @relation(fields: [product_option_id], references: [id])
+  product_option_id BigInt
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("product_option_choices")
 }
 
 model Likes {
@@ -326,3 +365,6 @@ enum CustomerServiceStatus {
   IN_PROGRESS // 처리중
   COMPLETED // 처리완료
 }
+
+
+/* (TBD) 리뷰 */
