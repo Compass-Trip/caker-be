@@ -200,6 +200,7 @@ model ProductOptions {
   id BigInt @id @default(autoincrement())
   name String // 옵션명
   display_order Int @default(0) // 정렬순서
+  is_multiple Boolean @default(false) // 중복선택 가능여부
   is_required Boolean @default(true) // 필수옵션 여부
 
   // 외래키
@@ -208,6 +209,8 @@ model ProductOptions {
   product_id BigInt
   // ProductOptions:ProductOptionChoices=1:N
   product_option_choices ProductOptionChoices[]
+  // ProductOptions:OrderOptions=1:N
+  order_options OrderOptions[]
 
   created_at DateTime @default(now())
   updated_at DateTime?
@@ -226,6 +229,8 @@ model ProductOptionChoices {
   // ProductOptionChoices:ProductOptions=N:1
   product_option ProductOptions @relation(fields: [product_option_id], references: [id])
   product_option_id BigInt
+  // ProductOptionChoices:OrderOptions=1:N
+  order_options OrderOptions[]
 
   created_at DateTime @default(now())
   updated_at DateTime?
@@ -265,7 +270,7 @@ model ProductDescriptionImages {
   image_url String // 이미지 URL
   section_type ProductDescSectionTypes
   display_order Int @default(0)
-  
+
   // 외래키
   // ProductDescriptionImages:ProductDescriptions=N:1
   product_description ProductDescriptions @relation(fields: [product_description_id], references: [id])
@@ -299,28 +304,29 @@ model Likes {
 }
 
 
-
+/* 주문 */
 model Orders {
   id BigInt @id @default(autoincrement())
   // 현재 주문상태 - 주문상태내역(OrderStatusRecords)에서 처리일시가 가장최신날짜인 데이터의 상태
-  options Json
   quantity Int @default(1)
-  pickup_date DateTime @default(now())
+  pickup_date DateTime @default(now()) // 픽업날짜
+  add_option_price Int @default(0) // 옵션선택 비용
+  final_price Int // 최종주문비용(상품가격+옵션선택가격)
+  selected_option_snapshot Json? // 옵션선택 스냅샷 (백업용)
 
   // 외래키
   // Orders:Product=1:1
   product Products @relation(fields: [product_id], references: [id])
   product_id BigInt @unique
-
   // Orders:Users=N:1
   user Users @relation(fields: [user_id], references: [id])
   user_id BigInt
-
   // Orders:OrderStatusRecords=1:N
   order_status_records OrderStatusRecords[]
-
   // Orders:CustomOrders=1:N
   custom_orders CustomOrders[]
+  // Orders:OrderOptions=1:N
+  order_options OrderOptions[]
 
   created_at DateTime @default(now())
   updated_at DateTime?
@@ -388,6 +394,29 @@ model CustomOrders {
   deleted Boolean @default(false)
   @@map("custom_orders")
 }
+
+/* 주문 옵션선택 */
+model OrderOptions {
+  // 복합키
+  @@id([order_id, product_option_id, product_option_choice_id])
+
+  // 외래키
+  // Orders:OrderOptions=N:1
+  order Orders @relation(fields: [order_id], references: [id])
+  order_id BigInt
+
+  // OrderOptions:ProductOptions=N:1
+  product_option ProductOptions @relation(fields: [product_option_id], references: [id])
+  product_option_id BigInt
+
+  // OrderOptions:ProductOptionChoices=N:1
+  product_option_choice ProductOptionChoices @relation(fields: [product_option_choice_id], references: [id])
+  product_option_choice_id BigInt
+
+  created_at DateTime @default(now())
+  @@map("order_options")
+}
+
 
 /* 고객문의 */
 model CustomerServices {
