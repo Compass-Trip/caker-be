@@ -128,8 +128,6 @@ model Products {
   representative_image_url String
   discount_percent Int?
   
-  description Json // 상품정보
-  
   // 외래키
   // Products:Stores=N:1
   store Stores @relation(fields: [store_id], references: [id])
@@ -143,6 +141,7 @@ model Products {
   order Orders? // Products:Orders=1:1
   custom_order_guides CustomOrderGuides[] // Products:CustomOrderGuides=1:N
   options ProductOptions[] // Products:ProductOptions=1:N
+  description ProductDescriptions? // Products:ProductDescriptions=1:1
   
   created_at DateTime @default(now())
   updated_at DateTime?
@@ -234,6 +233,51 @@ model ProductOptionChoices {
   @@map("product_option_choices")
 }
 
+/* 상품정보 */
+model ProductDescriptions {
+  id BigInt @id @default(autoincrement())
+  requirement_section String @db.Text     // [구매전 필독사항] 항목 텍스트 내용
+  size_section String @db.Text            // [케이크 사이즈] 항목 텍스트 내용
+  flavor_options_section String @db.Text  // [케이크 사이즈] 항목 텍스트 내용
+
+  // 외래키
+  // ProductDescriptions:Products=1:1
+  product Products @relation(fields:[product_id], references: [id])
+  product_id BigInt @unique
+  // ProductDescriptions:ProductDescriptionImages=1:N
+  images ProductDescriptionImages[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("product_descriptions")
+}
+
+/* 상품정보 섹션별 이미지 */
+enum ProductDescSectionTypes {
+  INFO_REQUIREMENT  // [구매전 필독사항] 항목 관련 이미지
+  INFO_SIZE         // [케이크 사이즈] 항목 관련 이미지
+  INFO_FLAVOR       // [케이크 맛 옵션] 항목 관련 이미지
+}
+
+model ProductDescriptionImages {
+  id BigInt @id @default(autoincrement())
+  image_url String // 이미지 URL
+  section_type ProductDescSectionTypes
+  display_order Int @default(0)
+  
+  // 외래키
+  // ProductDescriptionImages:ProductDescriptions=N:1
+  product_description ProductDescriptions @relation(fields: [product_description_id], references: [id])
+  product_description_id BigInt
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("product_description_images")
+}
+
+/* 좋아요/찜 */
 model Likes {
   // 외래키
   // Likes:Users=N:1
