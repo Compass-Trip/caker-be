@@ -30,5 +30,13 @@ import { HttpExceptionFilter } from './common/http-exception/http-exception.filt
     PrismaModule,
   ],
   controllers: [AppController],
+  providers: [
+    AppService,
+    {
+      // 전역으로 예외필터 등록
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+  ],
 })
 export class AppModule {}
