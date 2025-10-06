@@ -237,9 +237,9 @@ model ProductOptionChoices {
 /* 상품정보 */
 model ProductDescriptions {
   id BigInt @id @default(autoincrement())
-  requirement_section String @db.Text     // [구매전 필독사항] 항목 텍스트 내용
-  size_section String @db.Text            // [케이크 사이즈] 항목 텍스트 내용
-  flavor_options_section String @db.Text  // [케이크 사이즈] 항목 텍스트 내용
+  requirement_section String? @db.Text     // [구매전 필독사항] 항목 텍스트 내용
+  size_section String? @db.Text            // [케이크 사이즈] 항목 텍스트 내용
+  flavor_options_section String? @db.Text  // [케이크 사이즈] 항목 텍스트 내용
 
   // 외래키
   // ProductDescriptions:Products=1:1
