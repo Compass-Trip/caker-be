@@ -47,8 +47,6 @@ model Stores {
   id BigInt @id @default(autoincrement()) 
   name String
   buisness_number String @unique
-
-  location String
   address String
   phonenumber String
   contact_url String?
