@@ -14,30 +14,430 @@ datasource db {
 }
 
 enum UserType {
-  GENERAL
-  BUSINESS
-  ADMIN
+  GENERAL   // 일반 유저
+  BUSINESS  // 판매자 유저
+  ADMIN     // 관리자 유저
 }
 
 model Users {
-  id String @id @default(uuid())
+  id BigInt @id @default(autoincrement())
   name String
   user_type UserType
   phonenumber String @unique
-
-  // 일반 유저
-  kakao_client_id String?
   profile String?
 
-  // 판매자 유저
-  business_email String?
-  business_password String?
-  buisness_number String?
+  kakao_client_id String?
 
+  // 판매자 유저  
+  buisness_number String?
+  
   // 관리자 유저
   admin_email String?
   admin_password String?
 
+  // 외래키
+  store Stores? // Users:Stores=1:1 (판매자 유저)
+  likes Likes[] // Users:Likes=1:N
+  orders Orders[] // Users:Orders=1:N
+  customServices CustomerServices[]// Users:CustomerServices=1:N
+  
   created_at DateTime @default(now())
-  deleted_at DateTime? 
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("users")
 }
+
+model Stores {
+  id BigInt @id @default(autoincrement()) 
+  name String
+  location String
+  address String
+  phonenumber String
+  contact_url String?
+
+  // 외래키
+  user Users @relation(fields: [user_id], references: [id]) // Stores:Users=1:1 (판매자유저)
+  user_id BigInt @unique
+
+  business_operations BusinessOperations[] // Stores:BusinessOperations=1:N
+  products Products[] // Stores:Products=1:N
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("stores")
+}
+
+model TimeSlots {
+  id Int @id @default(autoincrement())
+  time24 DateTime @unique @db.Time
+
+  // 외래키
+  // TimeSlots:BusinessOperations.open_time=1:1
+  openingBusinessOperations BusinessOperations[] @relation("OpeningTime")
+  // TimeSlots:BusinessOperations.close_time=1:1
+  closingBusinessOperations BusinessOperations[] @relation("ClosingTime")
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("time_slots")
+}
+
+model BusinessOperations {
+  id Int @id @default(autoincrement())
+
+  /*
+  * 0: 월
+  * 1: 화
+  * 2: 수
+  * 3: 목
+  * 4: 금
+  * 5: 토
+  * 6: 일
+  */
+  day_of_week Int // 요일
+
+  /*
+  * true: 휴무일
+  * false: 영업일
+  */
+  day_off Boolean @default(false) // 휴무
+  
+  // 외래키
+  // BusinessOperations.open_time:TimeSlots=1:1
+  opne_time TimeSlots @relation("OpeningTime", fields: [open_time_at], references: [id])
+  open_time_at Int 
+  // BusinessOperations.close_time:TimeSlots=1:1
+  close_time TimeSlots @relation("ClosingTime", fields: [close_time_at], references: [id])
+  close_time_at Int 
+  // BusinessOperations:Stores=N:1
+  store Stores @relation(fields: [store_id], references: [id])
+  store_id BigInt
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("business_operations")
+}
+
+model Products {
+  id BigInt @id @default(autoincrement()) 
+  name String
+  price Int
+  representative_image_url String
+  discount_percent Int?
+  
+  // 외래키
+  // Products:Stores=N:1
+  store Stores @relation(fields: [store_id], references: [id])
+  store_id BigInt
+  // Products:EventCategories=1:1
+  event_category EventCategories @relation(fields: [event_category_id], references: [id])
+  event_category_id Int @unique
+  // Products:ProductsAndThemeNDesignCategories=1:N
+  products_and_theme_n_design_categories ProductsAndThemeNDesignCategories[]
+  likes Likes[] // Products:Likes=1:N
+  order Orders? // Products:Orders=1:1
+  custom_order_guides CustomOrderGuides[] // Products:CustomOrderGuides=1:N
+  options ProductOptions[] // Products:ProductOptions=1:N
+  description ProductDescriptions? // Products:ProductDescriptions=1:1
+  
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("products")
+}
+
+model EventCategories {
+  id Int @id @default(autoincrement())
+  name String @unique
+  icon_image_url String
+
+  // 외래키
+  product Products?
+  
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("event_categories")
+}
+
+model ThemeNDesignCategories {
+  id Int @id @default(autoincrement())
+  name String @unique
+
+  // 외래키
+  // ThemeNDesignCategories:ProductsAndThemeNDesignCategories=1:N
+  products_and_theme_n_design_categories ProductsAndThemeNDesignCategories[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("theme_n_design_categories")
+}
+
+model ProductsAndThemeNDesignCategories {
+  // 외래키
+  // ProductsAndThemeNDesignCategories:Products=N:1
+  product Products @relation(fields: [product_id], references: [id])
+  product_id BigInt
+
+  // ProductsAndThemeNDesignCategories:ThemeNDesignCategories=N:1
+  theme_n_design_category ThemeNDesignCategories @relation(fields: [theme_n_design_category_id], references: [id])
+  theme_n_design_category_id Int
+
+  @@id([product_id, theme_n_design_category_id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("products_and_theme_n_design_categories")
+}
+
+/* 상품옵션 (예: 케이크사이즈, 케이크맛, 필링, 아이스팩, 포장, 디자인초 등) */
+model ProductOptions {
+  id BigInt @id @default(autoincrement())
+  name String // 옵션명
+  display_order Int @default(0) // 정렬순서
+  is_multiple Boolean @default(false) // 중복선택 가능여부
+  is_required Boolean @default(true) // 필수옵션 여부
+
+  // 외래키
+  // ProductOptions:Products=N:1
+  product Products @relation(fields: [product_id], references: [id])
+  product_id BigInt
+  // ProductOptions:ProductOptionChoices=1:N
+  product_option_choices ProductOptionChoices[]
+  // ProductOptions:OrderOptions=1:N
+  order_options OrderOptions[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("product_options")
+}
+
+/* 상품옵션 하위 선택형 옵션 & 추가가격 */
+model ProductOptionChoices {
+  id BigInt @id @default(autoincrement())
+  name String // 하위옵션명
+  display_order Int @default(0) // 정렬순서
+  additional_price Int @default(0) // 추가가격
+
+  // 외래키
+  // ProductOptionChoices:ProductOptions=N:1
+  product_option ProductOptions @relation(fields: [product_option_id], references: [id])
+  product_option_id BigInt
+  // ProductOptionChoices:OrderOptions=1:N
+  order_options OrderOptions[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("product_option_choices")
+}
+
+/* 상품정보 */
+model ProductDescriptions {
+  id BigInt @id @default(autoincrement())
+  requirement_section String @db.Text     // [구매전 필독사항] 항목 텍스트 내용
+  size_section String @db.Text            // [케이크 사이즈] 항목 텍스트 내용
+  flavor_options_section String @db.Text  // [케이크 사이즈] 항목 텍스트 내용
+
+  // 외래키
+  // ProductDescriptions:Products=1:1
+  product Products @relation(fields:[product_id], references: [id])
+  product_id BigInt @unique
+  // ProductDescriptions:ProductDescriptionImages=1:N
+  images ProductDescriptionImages[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("product_descriptions")
+}
+
+/* 상품정보 섹션별 이미지 */
+enum ProductDescSectionTypes {
+  INFO_REQUIREMENT  // [구매전 필독사항] 항목 관련 이미지
+  INFO_SIZE         // [케이크 사이즈] 항목 관련 이미지
+  INFO_FLAVOR       // [케이크 맛 옵션] 항목 관련 이미지
+}
+
+model ProductDescriptionImages {
+  id BigInt @id @default(autoincrement())
+  image_url String // 이미지 URL
+  section_type ProductDescSectionTypes
+  display_order Int @default(0)
+
+  // 외래키
+  // ProductDescriptionImages:ProductDescriptions=N:1
+  product_description ProductDescriptions @relation(fields: [product_description_id], references: [id])
+  product_description_id BigInt
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("product_description_images")
+}
+
+/* 좋아요/찜 */
+model Likes {
+  // 외래키
+  // Likes:Users=N:1
+  user Users @relation(fields: [user_id], references: [id]) 
+  user_id BigInt
+
+  // Likes:Products=N:1
+  product Products @relation(fields: [product_id], references: [id])
+  product_id BigInt
+
+  // 복합키 기본키 정의
+  // 동일유저가 동일상품을 중복으로 좋아요 표시 방지
+  @@id([user_id, product_id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("likes")
+}
+
+
+/* 주문 */
+model Orders {
+  id BigInt @id @default(autoincrement())
+  // 현재 주문상태 - 주문상태내역(OrderStatusRecords)에서 처리일시가 가장최신날짜인 데이터의 상태
+  quantity Int @default(1)
+  pickup_date DateTime @default(now()) // 픽업날짜
+  add_option_price Int @default(0) // 옵션선택 비용
+  final_price Int // 최종주문비용(상품가격+옵션선택가격)
+  selected_option_snapshot Json? // 옵션선택 스냅샷 (백업용)
+
+  // 외래키
+  // Orders:Product=1:1
+  product Products @relation(fields: [product_id], references: [id])
+  product_id BigInt @unique
+  // Orders:Users=N:1
+  user Users @relation(fields: [user_id], references: [id])
+  user_id BigInt
+  // Orders:OrderStatusRecords=1:N
+  order_status_records OrderStatusRecords[]
+  // Orders:CustomOrders=1:N
+  custom_orders CustomOrders[]
+  // Orders:OrderOptions=1:N
+  order_options OrderOptions[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("orders")
+}
+
+enum OrderStatus {
+  ORDER_SUBMIT // 주문서제출
+  ORDER_DECIDED // 주문확정
+  PRODUCTION_COMPLETE // 제작완료
+  PICKUP_COMPLETE // 픽업완료
+}
+
+/* 주문상태내역 */
+model OrderStatusRecords {
+  id BigInt @id @default(autoincrement())
+  status OrderStatus @default(ORDER_SUBMIT) // 상태
+  processed_at DateTime @default(now()) // 처리일시
+
+  // 외래키
+  // OrderStatusRecords:Orders=N:1
+  order Orders @relation(fields: [order_id], references: [id])
+  order_id BigInt
+
+  created_at DateTime @default(now())
+  @@map("order_status_records")
+}
+
+/* (판매자 유저) 특정상품 커스텀주문 가이드 */
+model CustomOrderGuides {
+  id BigInt @id @default(autoincrement())
+  marker_number Int @default(1)
+  guide_example String
+
+  // 외래키
+  // CustomOrderGuides:Products=N:1
+  product Products @relation(fields: [product_id], references: [id]) 
+  product_id BigInt
+  custom_orders CustomOrders[] // CustomOrderGuides:CustomOrders=1:N
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("custom_order_guides")
+}
+
+/* (일반 유저) 커스텀 주문 */
+model CustomOrders {
+  id BigInt @id @default(autoincrement())
+  is_change Boolean @default(false) // 변경여부(true: 변경선택/ false: 가이드기본값 그대로)
+  change_content String // 변경내용
+
+  // 외래키
+  // CustomOrders:Orders=N:1
+  order Orders @relation(fields: [order_id], references: [id])
+  order_id BigInt
+  
+  // CustomOrders:CustomOrderGuides=N:1
+  custom_order_guide CustomOrderGuides @relation(fields: [custom_order_guide_id], references: [id])
+  custom_order_guide_id BigInt
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+  deleted Boolean @default(false)
+  @@map("custom_orders")
+}
+
+/* 주문 옵션선택 */
+model OrderOptions {
+  // 복합키
+  @@id([order_id, product_option_id, product_option_choice_id])
+
+  // 외래키
+  // Orders:OrderOptions=N:1
+  order Orders @relation(fields: [order_id], references: [id])
+  order_id BigInt
+
+  // OrderOptions:ProductOptions=N:1
+  product_option ProductOptions @relation(fields: [product_option_id], references: [id])
+  product_option_id BigInt
+
+  // OrderOptions:ProductOptionChoices=N:1
+  product_option_choice ProductOptionChoices @relation(fields: [product_option_choice_id], references: [id])
+  product_option_choice_id BigInt
+
+  created_at DateTime @default(now())
+  @@map("order_options")
+}
+
+
+/* 고객문의 */
+model CustomerServices {
+  id BigInt @id @default(autoincrement())
+  title String // 고객문의 제목
+  content String // 고객문의 내용
+  staus CustomerServiceStatus @default(IN_PROGRESS) // 상태
+
+  // 외래키
+  // CustomerServices:User=N:1
+  user Users @relation(fields: [user_id], references: [id])
+  user_id BigInt
+
+  created_at DateTime @default(now())
+  @@map("customers_services")
+}
+
+enum CustomerServiceStatus {  
+  IN_PROGRESS // 처리중
+  COMPLETED // 처리완료
+}
+
+
+/* (TBD) 리뷰 */
