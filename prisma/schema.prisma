@@ -25,11 +25,7 @@ model Users {
   user_type UserType
   phonenumber String @unique
   profile String?
-
   kakao_client_id String?
-
-  // 판매자 유저  
-  buisness_number String?
   
   // 관리자 유저
   admin_email String?
@@ -50,6 +46,8 @@ model Users {
 model Stores {
   id BigInt @id @default(autoincrement()) 
   name String
+  buisness_number String @unique
+
   location String
   address String
   phonenumber String
