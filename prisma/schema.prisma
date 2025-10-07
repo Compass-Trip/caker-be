@@ -46,7 +46,7 @@ model Users {
 model Stores {
   id BigInt @id @default(autoincrement()) 
   name String
-  buisness_number String @unique
+  business_number String @unique
   address String
   phonenumber String
   contact_url String?
@@ -102,11 +102,11 @@ model BusinessOperations {
   
   // 외래키
   // BusinessOperations.open_time:TimeSlots=1:1
-  opne_time TimeSlots @relation("OpeningTime", fields: [open_time_at], references: [id])
-  open_time_at Int 
+  opne_time TimeSlots? @relation("OpeningTime", fields: [open_time_at], references: [id])
+  open_time_at Int?
   // BusinessOperations.close_time:TimeSlots=1:1
-  close_time TimeSlots @relation("ClosingTime", fields: [close_time_at], references: [id])
-  close_time_at Int 
+  close_time TimeSlots? @relation("ClosingTime", fields: [close_time_at], references: [id])
+  close_time_at Int?
   // BusinessOperations:Stores=N:1
   store Stores @relation(fields: [store_id], references: [id])
   store_id BigInt
